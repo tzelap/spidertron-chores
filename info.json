@@ -1,0 +1,9 @@
+{
+  "name": "spidertron-chores",
+  "version": "1.8.1",
+  "title": "Spidertron Chores",
+  "author": "you",
+  "factorio_version": "2.1",
+  "description": "Spidertrons do their own chores: defend against attacks, go home to restock, build outposts outside roboport coverage, patrol, clear nests, shuttle between two spots, and put up lamps around your buildings. Pick jobs per spider in a panel next to its window.",
+  "dependencies": ["base >= 2.1.0"]
+}

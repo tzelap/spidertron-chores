@@ -1,0 +1,22 @@
+---------------------------------------------------------------------------------------------------
+Version: 1.8.1
+Date: 2026-10-25
+  Changes:
+    - Problems now show as alerts in the alert bar (click to jump there) instead of chat messages.
+    - Builder handles upgrade planner marks and floor tiles marked for removal.
+  Bugfixes:
+    - Building no longer pulls a spider off its shuttle run, lamp work, or the walk between guard posts.
+    - Build spots outside every spider's work area are no longer rescanned over and over.
+    - A failed restock no longer lowers what the spider counts as "full" ammo.
+---------------------------------------------------------------------------------------------------
+Version: 1.8.0
+Date: 2026-10-25
+  Features:
+    - Separate restock point (e.g. your main factory), so home can be an outpost.
+    - Pin buttons to pick home, restock point and shuttle stops anywhere, also on the map.
+---------------------------------------------------------------------------------------------------
+Version: 1.7.0
+Date: 2026-10-25
+  Changes:
+    - Builder works like construction bots: only inside its work area, only with items it has or can get.
+    - Rebuilds things destroyed outside roboport coverage.
