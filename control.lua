@@ -126,7 +126,14 @@ commands.add_command("chores", "List spiders doing chores and what they're up to
   local out = {}
   for _, s in pairs(storage.spiders or {}) do
     if s.entity.valid and s.on then
-      out[#out + 1] = (s.entity.entity_label or ("Spidertron #" .. s.entity.unit_number)) .. ": " .. (s.status or s.state)
+      local line = (s.entity.entity_label or ("Spidertron #" .. s.entity.unit_number)) .. ": " .. (s.status or s.state)
+      if s.jobs.turrets and s.turret_kinds and next(s.turret_kinds) then
+        local parts = {}
+        for _, k in pairs(s.turret_kinds) do parts[#parts + 1] = string.format("[item=%s] %d", k.name, k.turrets or 0) end
+        table.sort(parts)
+        line = line .. "\n    turret ammo (turrets using it): " .. table.concat(parts, "  ")
+      end
+      out[#out + 1] = line
     end
   end
   local msg = #out > 0 and table.concat(out, "\n") or "No spiders are doing chores. Open a spidertron and tick \"Do chores automatically\"."

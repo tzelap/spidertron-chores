@@ -1,4 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.8.2
+Date: 2026-10-26
+  Bugfixes:
+    - Empty turrets (e.g. newly built rocket turrets) are now counted when requesting turret ammo.
+    - Turret ammo is requested on top of the spider's own ammo when both use the same item.
+  Changes:
+    - Up to 6 turret ammo types (was 4), the most-used first.
+    - /chores shows which turret ammo each spider carries.
+---------------------------------------------------------------------------------------------------
 Version: 1.8.1
 Date: 2026-10-25
   Changes:

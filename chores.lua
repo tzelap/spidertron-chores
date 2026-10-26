@@ -299,9 +299,17 @@ function C.desired(s)
     if cfg("light-poles") then add_need(want, cfg("light-pole"), "normal", cfg("request-poles")) end
   end
   if on(s, "turrets") then
+    local list = {}
+    for _, k in pairs(s.turret_kinds or {}) do list[#list + 1] = k end
+    table.sort(list, function(a, b)
+      if (a.turrets or 0) ~= (b.turrets or 0) then return (a.turrets or 0) > (b.turrets or 0) end
+      return a.name < b.name
+    end)
+    local own = {}
+    for k, v in pairs(want) do own[k] = v.count end          -- the spider's own ammo etc. so far
     local n = 0
-    for _, k in pairs(s.turret_kinds or {}) do
-      if n >= 4 then break end
+    for _, k in ipairs(list) do
+      if n >= 6 then break end
       local amount
       if k.art then
         amount = cfg("art-request")                                   -- artillery: shells
@@ -309,7 +317,12 @@ function C.desired(s)
         local ip = prototypes.item[k.name]
         amount = math.ceil(cfg("request-turret-stacks") * (ip and ip.stack_size or 1))   -- others: stacks
       end
-      add_need(want, k.name, k.quality, amount)
+      local kk = key(k.name, k.quality)
+      if own[kk] and want[kk] then
+        want[kk].count = own[kk] + amount                     -- same rockets it fires: carry both
+      else
+        add_need(want, k.name, k.quality, amount)
+      end
       n = n + 1
     end
   end
@@ -833,22 +846,75 @@ local function pick_ammo(s, turret)
   return best
 end
 
+-- every ammo item and its category, once
+local ammo_list
+local function all_ammo()
+  if ammo_list then return ammo_list end
+  ammo_list = {}
+  local ok, protos = pcall(prototypes.get_item_filtered, {{filter = "type", type = "ammo"}})
+  for name, ip in pairs(ok and protos or {}) do
+    local cat = ip.ammo_category and ip.ammo_category.name
+    if cat then ammo_list[#ammo_list + 1] = {name = name, cat = cat} end
+  end
+  return ammo_list
+end
+
+-- what to bring for an empty turret: the fitting ammo your restock network has most of,
+-- else any fitting ammo you can craft
+local function ammo_for_empty(s, cats)
+  local net = home_network(s)
+  local best, bc
+  for _, a in ipairs(all_ammo()) do
+    if cats[a.cat] then
+      local n = net and net.get_item_count({name = a.name, quality = "normal"}) or 0
+      if n > 0 and (not bc or n > bc) then best, bc = a.name, n end
+    end
+  end
+  if best then return best end
+  local recipes = s.entity.force.recipes
+  for _, a in ipairs(all_ammo()) do
+    if cats[a.cat] and recipes[a.name] and recipes[a.name].enabled then return a.name end
+  end
+end
+
 -- low turrets this spider can top up, in a short walking order
 local function turret_run(s)
   local e = s.entity
   local r2 = cfg("turret-radius") ^ 2
-  local low, kinds = {}, {}
+  local low, kinds, empty = {}, {}, {}
+  local function note(name, quality, art)
+    local k = key(name, quality)
+    local cur = kinds[k]
+    if cur then cur.turrets = cur.turrets + 1
+    else kinds[k] = {name = name, quality = quality or "normal", art = art, turrets = 1} end
+  end
   for un, t in pairs(storage.turrets or {}) do
     if not t.valid then
       storage.turrets[un] = nil
     elseif t.surface.index == e.surface.index and t.force.index == e.force.index and dist2(t.position, s.home) <= r2 then
       local cur, n = turret_ammo(t)
-      if cur then kinds[key(cur.name, cur.quality)] = {name = cur.name, quality = cur.quality or "normal", art = t.type == "artillery-turret"} end
+      if cur then note(cur.name, cur.quality, t.type == "artillery-turret") else empty[#empty + 1] = t end
       local am = pick_ammo(s, t)
       if am then
         local lo = turret_levels(t, am.name)
         if n < lo then low[#low + 1] = t end
       end
+    end
+  end
+  -- empty turrets (e.g. ones you just built): same ammo as their loaded neighbours, else a good guess
+  for _, t in ipairs(empty) do
+    local cats = turret_cats(t)
+    local pick, pc
+    for _, k in pairs(kinds) do
+      local ip = prototypes.item[k.name]
+      local cat = ip and ip.ammo_category and ip.ammo_category.name
+      if cat and cats[cat] and (not pc or k.turrets > pc) then pick, pc = k, k.turrets end
+    end
+    if pick then
+      pick.turrets = pick.turrets + 1
+    else
+      local name = ammo_for_empty(s, cats)
+      if name then note(name, "normal", t.type == "artillery-turret") end
     end
   end
   s.turret_kinds = kinds
